@@ -1,5 +1,8 @@
 package com.franchiapello.ratelimiter.domain;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Objects;
 
 /**
@@ -18,8 +21,17 @@ import java.util.Objects;
  * dependencias manual, sin Spring): permite testear esta clase con un
  * {@link BucketStore} y un {@link RateLimiterConfigProvider} de prueba,
  * sin levantar infraestructura real.
+ *
+ * <p>El logging de rechazos vive aca, no en {@link Bucket}: este es el punto
+ * de orquestacion que conoce el {@code clientId} y representa la decision de
+ * negocio. {@link Bucket} es la unidad de estado mas fina e invocada con
+ * mayor frecuencia; atarle logging complicaria su testeo en aislamiento y
+ * acoplaria una decision operacional al mecanismo interno del algoritmo
+ * (ver DESIGN.md).
  */
 public final class TokenBucketRateLimiter implements RateLimiter {
+
+    private static final Logger log = LoggerFactory.getLogger(TokenBucketRateLimiter.class);
 
     private final BucketStore bucketStore;
     private final RateLimiterConfigProvider configProvider;
@@ -36,6 +48,13 @@ public final class TokenBucketRateLimiter implements RateLimiter {
         }
         RateLimiterConfig config = configProvider.resolve(clientId);
         Bucket bucket = bucketStore.getOrCreate(clientId, config);
-        return bucket.tryConsume(config);
+        RateLimitResult result = bucket.tryConsume(config);
+
+        if (!result.allowed()) {
+            log.info("Rate limit exceeded for clientId={}, retryAfterMillis={}",
+                    clientId, result.retryAfterMillis());
+        }
+
+        return result;
     }
 }
