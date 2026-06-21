@@ -1,0 +1,67 @@
+{
+  "info": {
+    "name": "Rate Limiter — Token Bucket",
+    "description": "Coleccion de prueba para el endpoint del rate limiter. Ver DESIGN.md en el repo para el razonamiento de cada decision de diseno.\n\nFlujo sugerido:\n1. Ejecuta 'Allowed request' una vez (deberia dar 200).\n2. Ejecuta 'Repeat until rate limited' varias veces seguidas con el mismo clientId (el default es 100 req/seg, asi que con el boton 'Run' de Postman alcanza para ver el 429).\n3. Ejecuta 'Missing client id header' para ver el 400 automatico de Spring.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Allowed request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Client-Id",
+            "value": "postman-client"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/rate-limit/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "rate-limit", "check"]
+        },
+        "description": "Deberia devolver 200 OK con header X-RateLimit-Remaining y body {allowed: true, ...}."
+      },
+      "response": []
+    },
+    {
+      "name": "Repeat until rate limited",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Client-Id",
+            "value": "stress-test-client"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/rate-limit/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "rate-limit", "check"]
+        },
+        "description": "Usa un clientId distinto al de 'Allowed request' para no compartir el mismo bucket. Ejecutar este request repetidamente (boton 'Send' varias veces, o seleccionar la coleccion y usar 'Run') hasta superar la capacidad default (100 tokens): deberia devolver 429 Too Many Requests con header Retry-After y body {allowed: false, retryAfterMillis: ...}."
+      },
+      "response": []
+    },
+    {
+      "name": "Missing client id header",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/rate-limit/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "rate-limit", "check"]
+        },
+        "description": "Sin el header X-Client-Id, Spring devuelve 400 Bad Request automaticamente antes de que el controller se ejecute. Ver DESIGN.md, seccion 6.1, para la justificacion de no agregar manejo de error explicito para este caso."
+      },
+      "response": []
+    }
+  ]
+}
