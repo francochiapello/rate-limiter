@@ -1,0 +1,10 @@
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\adapter\http\RateLimitControllerTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\BucketConcurrencyTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\BucketConsumptionTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\BucketRefillTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\FixedClock.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\RateLimiterConfigTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\RateLimitResultTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\domain\TokenBucketRateLimiterTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\infrastructure\InMemoryBucketStoreTest.java
+C:\Users\FC\github\rate-limiter\src\test\java\com\franchiapello\ratelimiter\infrastructure\InMemoryRateLimiterConfigProviderTest.java

@@ -1,0 +1,12 @@
+com\franchiapello\ratelimiter\domain\Bucket.class
+com\franchiapello\ratelimiter\domain\RateLimitResult.class
+com\franchiapello\ratelimiter\domain\BucketStore.class
+com\franchiapello\ratelimiter\domain\RateLimiterConfig.class
+com\franchiapello\ratelimiter\adapter\http\RateLimitCheckResponse.class
+com\franchiapello\ratelimiter\domain\RateLimiter.class
+com\franchiapello\ratelimiter\domain\RateLimiterConfigProvider.class
+com\franchiapello\ratelimiter\RateLimiterApplication.class
+com\franchiapello\ratelimiter\domain\TokenBucketRateLimiter.class
+com\franchiapello\ratelimiter\adapter\http\RateLimitController.class
+com\franchiapello\ratelimiter\infrastructure\InMemoryBucketStore.class
+com\franchiapello\ratelimiter\infrastructure\InMemoryRateLimiterConfigProvider.class
