@@ -1,6 +1,6 @@
 # DESIGN.md — Rate Limiter
 
-> **Estado del documento:** Refleja el proyecto completo: dominio, infraestructura, adaptador HTTP, tests (incluyendo concurrencia), logging, y las decisiones explícitas sobre métricas y configuración. Validado con `./mvnw test` — todos los tests pasan.
+> **Estado del documento:** Refleja el proyecto completo: dominio, infraestructura, adaptador HTTP, tests (incluyendo concurrencia), logging, y las decisiones explícitas sobre métricas y configuración. Validado con `./mvnw test` — todos los tests pasan. La sección 9.1 (backend distribuido) documenta un análisis de diseño en profundidad, incluyendo el script Lua evaluado, que se decidió no llevar a código — ver esa sección para la justificación completa.
 
 ## Propósito de este documento
 
@@ -295,9 +295,62 @@ Estas son extensiones reales y conocidas del problema. Se documentan acá explí
 
 **Problema que resolvería:** esta implementación es correcta solo en un proceso único. Si la aplicación corre en múltiples instancias detrás de un load balancer, cada instancia tiene su propio `ConcurrentHashMap` — un mismo cliente podría consumir su cuota completa contra cada instancia por separado, multiplicando el límite real por la cantidad de instancias.
 
-**Cómo evolucionaría:** implementar `BucketStore` con Redis, usando un script Lua para mantener la atomicidad de "leer estado, calcular refill, decrementar, guardar" en una sola operación atómica del lado del servidor — el mismo problema que `ConcurrentHashMap.computeIfAbsent` resuelve en memoria, resuelto en Redis con `EVAL` de un script Lua en vez de un lock de aplicación. Alternativa sin Lua: `WATCH`/`MULTI`/`EXEC` (optimistic locking de Redis) con reintento en el cliente.
+**Contexto de esta sección:** durante el proceso de evaluación se consultó explícitamente el alcance esperado, y la respuesta confirmó que se espera que *"a nivel de arquitectura se pueda extender a múltiples instancias y que tenga el almacenamiento para que pueda adaptarse a más tráfico"*. Esto llevó a diseñar en detalle — no solo a mencionar — la implementación con Redis, incluyendo el script Lua completo, antes de decidir si correspondía implementarla en código. El razonamiento completo de esa evaluación queda documentado abajo, junto con la decisión final y su justificación.
 
-**Por qué no se implementa ahora:** el enunciado del ejercicio no exige multi-instancia, y agregar una dependencia de infraestructura externa (Redis) a un prototipo cuyo foco es el dominio sería exactamente la sobreingeniería que se busca evitar. El punto de extensión (`BucketStore`) ya existe; agregar la implementación es trabajo de infraestructura, no un cambio de diseño.
+**Por qué Redis y no otra alternativa de almacenamiento distribuido:** Redis es la opción estándar de la industria para este problema específico (rate limiting distribuido) por tres razones concretas: latencia de sub-milisegundo (crítico porque el rate limiter está en el camino crítico de cada request), soporte nativo de scripts atómicos del lado del servidor (necesario para preservar la garantía de atomicidad que `ConcurrentHashMap.computeIfAbsent` da gratis en memoria), y estructuras de datos con expiración nativa (`PEXPIRE`), que evitan tener que implementar a mano la limpieza de clientes inactivos.
+
+**Cómo se diseñó la migración — el script Lua evaluado:**
+
+La atomicidad de "leer estado, calcular refill, decrementar, guardar" se preserva con un script Lua ejecutado vía `EVAL`. Redis garantiza que un script Lua se ejecuta de forma atómica respecto de cualquier otro cliente conectado — es el equivalente, en Redis, al lock por bucket que protege a `Bucket.tryConsume` en memoria.
+
+```lua
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local refillTokens = tonumber(ARGV[2])
+local refillPeriodMillis = tonumber(ARGV[3])
+local now = tonumber(ARGV[4])
+
+local bucket = redis.call('HMGET', key, 'tokens', 'lastRefill')
+local tokens = tonumber(bucket[1])
+local lastRefill = tonumber(bucket[2])
+
+if tokens == nil then
+    tokens = capacity
+    lastRefill = now
+end
+
+local elapsed = now - lastRefill
+if elapsed > 0 then
+    local periodsElapsed = math.floor(elapsed / refillPeriodMillis)
+    if periodsElapsed > 0 then
+        tokens = math.min(capacity, tokens + periodsElapsed * refillTokens)
+        lastRefill = lastRefill + periodsElapsed * refillPeriodMillis
+    end
+end
+
+local allowed = 0
+local retryAfter = 0
+if tokens > 0 then
+    tokens = tokens - 1
+    allowed = 1
+else
+    local elapsedInCurrentPeriod = (now - lastRefill) % refillPeriodMillis
+    retryAfter = refillPeriodMillis - elapsedInCurrentPeriod
+end
+
+redis.call('HMSET', key, 'tokens', tokens, 'lastRefill', lastRefill)
+redis.call('PEXPIRE', key, refillPeriodMillis * capacity * 2)
+
+return {allowed, tokens, retryAfter}
+```
+
+Este script replica exactamente el mismo algoritmo de `Bucket.refill()` y `Bucket.tryConsume()`: refill lazy (se calcula en el momento de la consulta, sin proceso de fondo), avance del timestamp en múltiplos exactos del período (sin drift — la misma técnica que evita el drift en la versión Java), y tope en `capacity` vía `math.min`. El reloj (`now`) se sigue calculando en el lado de la aplicación Java (con el mismo `Clock` ya inyectado en `Bucket`) y se pasa como parámetro al script — Lua no decide la hora, solo opera sobre el valor que recibe, preservando la misma separación entre "quién sabe la hora" y "quién calcula el refill" que ya existe en el diseño actual.
+
+**Alternativa considerada y descartada — `WATCH`/`MULTI`/`EXEC` (optimistic locking) sin Lua:** Redis permite lograr una atomicidad equivalente sin scripts, usando `WATCH` sobre la clave, leyendo el estado, calculando en el cliente, y confirmando con `MULTI`/`EXEC` (que falla si la clave cambió entre el `WATCH` y el `EXEC`, forzando un reintento). Se descartó frente a Lua porque introduce un bucle de reintento explícito en el código Java (con el caso límite de qué hacer si los reintentos se agotan bajo alta contención), mientras que Lua resuelve la atomicidad del lado del servidor sin esa complejidad adicional en el cliente.
+
+**Decisión final: no se implementó en código.** La razón no es de complejidad de líneas de código — el script Lua y su `RedisBucketStore` correspondiente son piezas acotadas, del mismo orden de magnitud que el resto de las clases de este proyecto. La razón es otra, y se documenta con la misma honestidad que el resto de este archivo: implementar Lua sin poder defenderlo con la misma solidez línea por línea que el resto del código de este proyecto sería peor evidencia que no implementarlo y documentar el análisis completo. El criterio aplicado en todo este proyecto fue no incluir nada que no se pueda justificar con seguridad si se cuestiona en una entrevista — y ese mismo criterio, aplicado con honestidad, es el que decide no incluir el script Lua como código ejecutable en esta entrega.
+
+Lo que sí se sostiene, y es lo que se quiere transmitir con esta sección: el punto de extensión (`BucketStore`) fue diseñado desde el principio para que esta migración sea posible sin tocar el algoritmo ni el resto del dominio, y el trabajo de diseño de la migración se hizo en detalle real (no solo en una frase) para confirmar que esa promesa arquitectónica se sostiene en la práctica, no solo en la teoría.
 
 ### 9.2 Múltiples políticas simultáneas por cliente
 
