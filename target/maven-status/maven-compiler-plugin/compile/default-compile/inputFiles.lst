@@ -1,0 +1,12 @@
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\adapter\http\RateLimitCheckResponse.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\adapter\http\RateLimitController.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\Bucket.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\BucketStore.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\RateLimiter.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\RateLimiterConfig.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\RateLimiterConfigProvider.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\RateLimitResult.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\domain\TokenBucketRateLimiter.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\infrastructure\InMemoryBucketStore.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\infrastructure\InMemoryRateLimiterConfigProvider.java
+C:\Users\FC\github\rate-limiter\src\main\java\com\franchiapello\ratelimiter\RateLimiterApplication.java

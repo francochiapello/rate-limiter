@@ -1,0 +1,10 @@
+com\franchiapello\ratelimiter\infrastructure\InMemoryBucketStoreTest.class
+com\franchiapello\ratelimiter\domain\BucketRefillTest.class
+com\franchiapello\ratelimiter\domain\BucketConcurrencyTest.class
+com\franchiapello\ratelimiter\domain\TokenBucketRateLimiterTest.class
+com\franchiapello\ratelimiter\domain\RateLimiterConfigTest.class
+com\franchiapello\ratelimiter\domain\BucketConsumptionTest.class
+com\franchiapello\ratelimiter\adapter\http\RateLimitControllerTest.class
+com\franchiapello\ratelimiter\domain\FixedClock.class
+com\franchiapello\ratelimiter\domain\RateLimitResultTest.class
+com\franchiapello\ratelimiter\infrastructure\InMemoryRateLimiterConfigProviderTest.class

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.franchiapello</groupId>
+    <artifactId>rate-limiter</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>rate-limiter</name>
+    <description>
+        Prototipo de Rate Limiter (Token Bucket) con dominio independiente de framework
+        y un adaptador HTTP delgado sobre Spring Boot. Ver DESIGN.md para las decisiones
+        arquitectonicas y los trade-offs evaluados.
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <dependencies>
+        <!--
+            Adaptador HTTP. El dominio (paquete `domain`) no depende de esto;
+            solo el paquete `adapter.http` lo usa. Ver DESIGN.md seccion 6.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--
+            Trae JUnit 5 y Mockito ya integrados; no se agregan por separado
+            para evitar declarar dos veces la misma dependencia transitiva.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
